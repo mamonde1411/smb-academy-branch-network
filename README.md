@@ -2,7 +2,11 @@
 Network design for a two-site language academy — role-based segmentation and access control, built from the owner's real operational requirements.
 
 ## 프로젝트 개요
-이전에 일하던 영어 도서관 겸 어학원에서 운영자의 고충을 들어 프로젝트를 시작하게 됐다. 운영자는 학원에서 쓰이는 모든 자료(학생 정보, 결제 내역, 수업 자료, 도서 DB, 스케줄 등)가 한 구글 드라이브에 저장되어 있고 모든 직원들이 그 어카운트를 사용하는 것에 불안감을 느꼈다. 실제로 과거 퇴사자가 모든 자료를 삭제한 사고도 있었다. 구글 본사에 전화해 일부 복구가 가능했지만 금전적인 손해를 입었다. 운영자는 학원 운영 프로그램(학생 관리, 도서·수업 자료 관리, 결제)을 자체적으로 두고 싶어했고 직원들이 직무에 따른 접근 권한을 가지길 원한다. 1~2년 내 지점을 열 예정이며 그때는 구글 드라이브 대신 자체 인프라로 운영하길 원한다. Packet Tracer을 사용해 본원과 지점을 연결하는 인프라를 설계, 구현, 결함 주입 검증을 할 것이다. 현재 설계 단계에 있다.
+이전에 일하던 영어 도서관 겸 어학원에서 운영자의 고충을 들어 프로젝트를 시작하게 됐다. 운영자는 학원에서 쓰이는 모든 자료(학생 정보, 결제 내역, 수업 자료, 도서 DB, 스케줄 등)가 한 구글 드라이브에 저장되어 있고 모든 직원들이 그 어카운트를 사용하는 것에 불안감을 느꼈다. 실제로 과거 퇴사자가 모든 자료를 삭제한 사고도 있었다. 
+
+구글 본사에 전화해 일부 복구가 가능했지만 금전적인 손해를 입었다. 운영자는 학원 운영 프로그램(학생 관리, 도서·수업 자료 관리, 결제)을 자체적으로 두고 싶어했고 직원들이 직무에 따른 접근 권한을 가지길 원한다. 1~2년 내 지점을 열 예정이며 그때는 구글 드라이브 대신 자체 인프라로 운영하길 원한다. 
+
+이 프로젝트는 Packet Tracer를 사용해 본원과 지점을 연결하는 인프라를 설계, 구현, 장애 주입 검증으로 구성된다. 현재 설계 단계에 있다.
 
 
 ## 토폴로지 이미지
@@ -14,9 +18,9 @@ Network design for a two-site language academy — role-based segmentation and a
 | 1 | 직원이 자신의 직무에 필요한 자료만 볼 수 있을 것  (프런트 데스크 / 도서 관리팀 / 강사 / 수업 자료 개발팀)
 | 2 | 전체 자료가 한번에 삭제되지 않게 하고 활동 내용을 확인할 수 있을 것
 | 3 | 학원 운영 프로그램을 본원과 지점, 그리고 추후에 생길 지점에서도 사용할 수 있을 것
-| 4 | 지점과 본원의 인터넷이 끊겨도 수업과 학원 운영에 영향이 가지 않을 것
+| 4 | 인터넷이 끊겨도 수업과 학원 운영에 영향이 가지 않을 것
 | 5 | 장비나 케이블 하나에 문제가 생겨도 수업과 학원 운영에 영향이 가지 않을 것
-| 6 | 새로운 노트북이나 유선·무선기기를 사용해도 로그인을 하면 학원 운영 프로그램을 사용할 수 있을 것
+| 6 | 새로운 노트북이나 유선·무선기기를 사용해도 로그인을 하면 학원 네트워크를 사용할 수 있을 것
 | 7 | 게스트용 와이파이로 학원 내부 자료를 볼 수 없을 것
 | 8 | 지점이 늘어날 것을 전제로 할 것
 
@@ -27,12 +31,15 @@ Network design for a two-site language academy — role-based segmentation and a
 3. PT에서 유선 dot1x 지원 - 검증 예정
 
 ## 사용 기술
-VLAN, 802.1Q, RPVST+, SVI, EtherChannel(LACP), OSPF, Floating, Static Route, HSRPv2, Extended ACL, NAT/PAT, 
+VLAN, 802.1Q, RPVST+, SVI, EtherChannel(LACP), OSPF, Floating static route, HSRPv2, Extended ACL, NAT/PAT, 
 SYSLOG, NTP, DHCP, DNS, Port security, DHCP snooping, DAI, site-to-site VPN, RADIUS + 802.1X, 
 WLC, CAPWAP, WPA2-Enterprise with PEAP, SSID-VLAN mapping, WI-FI
 
-**pt 한계로 인해 제외된 기술**
-MAB(MAC Authentication Bypass)
+**pt 한계와 대응**
+1. MAB(MAC Authentication Bypass)
+2. NAS 논리적 분리(vlan tagging | 랜포트 2개 이상 | 가상화) 
+    - PT에서는 서버 두 대를 놓아서 분리함. 실제로는 위 괄호 안에 있는 기술을 사용해 논리적 분리.
+
 
 
 ## 설계 요약
