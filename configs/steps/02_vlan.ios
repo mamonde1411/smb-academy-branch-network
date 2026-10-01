@@ -1,0 +1,95 @@
+
+!+++++ Creating VLANs +++++
+
+!===== CSW-1, 2 =====
+enable
+configure terminal
+
+vtp mode transparent
+
+vlan 10
+name FRONT
+
+vlan 20
+name LIBRARY
+
+vlan 30
+name TEACHER
+
+vlan 40
+name CONTENT
+
+vlan 50
+name STUDENT
+
+vlan 100
+name SERVER
+
+vlan 110
+name BACKUP
+
+vlan 200
+name MGMT
+
+vlan 250
+name GUEST
+
+vlan 998
+name NATIVE
+
+vlan 999
+name BLACKHOLE
+
+exit
+
+do w
+
+
+!===== ASW-1, 2 =====
+enable
+configure terminal
+
+vtp mode transparent
+
+vlan 10
+name FRONT
+
+vlan 20
+name LIBRARY
+
+vlan 30
+name TEACHER
+
+vlan 40
+name CONTENT
+
+vlan 50
+name STUDENT
+
+vlan 200
+name MGMT
+
+vlan 250
+name GUEST
+
+vlan 998
+name NATIVE
+
+vlan 999
+name BLACKHOLE
+
+exit
+
+do w
+
+!+++++ LACP b/t CSWs +++++
+
+!===== CSW-1, 2 =====
+int range g1/0/23-24
+    channel-group 1 mode active
+    exit
+
+do w
+
+
+!+++++ LACP b/t CSWs +++++

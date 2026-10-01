@@ -1,0 +1,30 @@
+!프로젝트를 하며 번거로움을 덜기 위해 pw설정은 마지막으로 미룸.
+!우선 hostname 설정부터.
+
+!===== CSW-1 =====
+enable
+configure terminal
+hostname CSW1
+
+do w
+
+!===== CSW-2 =====
+enable
+configure terminal
+hostname CSW2
+
+do w
+
+!===== ASW-1 =====
+enable
+configure terminal
+hostname ASW1
+
+do w
+
+!===== ASW-2 =====
+enable
+configure terminal
+hostname ASW2
+
+do w

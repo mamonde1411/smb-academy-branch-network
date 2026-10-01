@@ -10,7 +10,12 @@ Network design for a two-site language academy — role-based segmentation and a
 
 
 ## 토폴로지 이미지
-(예정)
+물리 설계도
+![alt text](./docs/imgs/physical_design.png)
+
+논리 설계도
+![alt text](./docs/imgs/logical_design.png)
+
 
 ## 요구 사항
 | # | 요구사항 (고객 언어 그대로) |
@@ -25,10 +30,12 @@ Network design for a two-site language academy — role-based segmentation and a
 | 8 | 지점이 늘어날 것을 전제로 할 것
 
 **한계** 
-1. 학원 운영 프로그램은 개발자의 영역.
-2. 학원에서 직원이 개인 기기를 사용하는 것은 학원 정책으로 금지. 
+1. |3| 학원 운영 프로그램은 개발자의 영역.
+2. |6| 학원에서 직원이 개인 기기를 사용하는 것은 학원 정책으로 금지. 
 개인 기기 사용을 기술적으로 금지하기 위해선 EAP-TLS을 사용해야하는데 인증서를 관리할 수 있는 규모가 안되고 비용이 급증.
-3. PT에서 유선 dot1x 지원 - 검증 예정
+3. |4| 결제는 인터넷 통신이 필요해 장애 시 불가능.
+
+**PT에서 유선 dot1x 지원 - 검증 예정
 
 ## 사용 기술
 VLAN, 802.1Q, RPVST+, SVI, EtherChannel(LACP), OSPF, Floating static route, HSRPv2, Extended ACL, NAT/PAT, 
@@ -39,15 +46,32 @@ WLC, CAPWAP, WPA2-Enterprise with PEAP, SSID-VLAN mapping, WI-FI
 1. MAB(MAC Authentication Bypass)
 2. NAS 논리적 분리(vlan tagging | 랜포트 2개 이상 | 가상화) 
     - PT에서는 서버 두 대를 놓아서 분리함. 실제로는 위 괄호 안에 있는 기술을 사용해 논리적 분리.
+3. VTP v3 지원 X. VTP v2 사용
 
 
 
-## 설계 요약
-
-**주소 체계**
+## 주요 설계 결정 (수정 필요)
+**주소 설계**
 10.[거점].[vlan].0/24
+[거점] 본원: 1 지점:2 거점이 늘어나면 같은 규칙으로 생성
+[vlan] 세번째 옥텟에 vlan이 들어가므로 vlan id는 1~255 범위 안에서 지정한다.
 
-**접근 통제**
+**인증과 권한**
+직원용 SSID 하나에 802.1X를 적용하고 RADIUS가 계정을 확인해 직무별 VLAN을 할당한다.
+접속 매체가 아니라 계정이 권한을 정하므로 유선과 무선에 같은 정책이 적용된다.
+퇴사자는 계정 하나를 비활성화하면 전 거점에서 차단된다.
+
+**자료 배치**
+개인정보가 포함된 자료는 별도 IP로 분리했다.
+ACL은 IP와 포트만 보기 때문에 같은 서버에 둔 자료는 네트워크 계층에서 구분할 수 없다.
+폴더 단위 권한은 파일 서버가 담당한다.
+
+**이중화 범위**
+본원만 이중화하고 지점은 단일 구성으로 두었다.
+본원이 전 지점의 서버를 호스팅하므로 본원이 멈추면 지점 업무도 함께 멈추기 때문이다.
+회선도 같은 이유로 양 거점에 보조 회선을 두었다.
+
+
 
 
 
