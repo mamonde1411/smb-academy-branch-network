@@ -1,0 +1,71 @@
+!+++++ Configuring trunk on switches +++++
+
+!===== CSW-1 =====
+int po1
+    switchport mode trunk
+    switchport nonegotiate
+    switchport trunk native vlan 998 
+    switchport trunk allowed vlan 10,20,30,40,50,100,110,200,250
+    description ### to CSW2_ ###
+
+int g1/0/1
+    switchport mode trunk
+    switchport nonegotiate
+    switchport trunk native vlan 998 
+    switchport trunk allowed vlan 10,20,30,40,50,200,250
+    description ### to ASW1 ###
+
+int g1/0/2
+    switchport mode trunk
+    switchport nonegotiate
+    switchport trunk native vlan 998 
+    switchport trunk allowed vlan 10,20,30,40,50,200,250
+    description ### to ASW2 ###
+    exit
+
+do w
+
+!===== CSW-2 =====
+int po1
+    switchport mode trunk
+    switchport nonegotiate
+    switchport trunk native vlan 998 
+    switchport trunk allowed vlan 10,20,30,40,50,100,110,200,250
+    description ### to CSW1 ###
+
+int g1/0/1
+    switchport mode trunk
+    switchport nonegotiate
+    switchport trunk native vlan 998 
+    switchport trunk allowed vlan 10,20,30,40,50,200,250
+    description ### to ASW1 ###
+
+int g1/0/2
+    switchport mode trunk
+    switchport nonegotiate
+    switchport trunk native vlan 998 
+    switchport trunk allowed vlan 10,20,30,40,50,200,250
+    description ### to ASW2 ###
+    exit
+
+do w
+
+!===== ASW-1, 2 =====
+int g0/1
+    switchport mode trunk
+    switchport nonegotiate
+    switchport trunk native vlan 998
+    switchport trunk allowed vlan 10,20,30,40,50,200,250
+    description ### to CSW1 ###
+
+int g0/2
+    switchport mode trunk
+    switchport nonegotiate
+    switchport trunk native vlan 998
+    switchport trunk allowed vlan 10,20,30,40,50,200,250
+    description ### to CSW2 ###
+    exit
+
+do w
+
+
