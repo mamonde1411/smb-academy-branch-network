@@ -1,0 +1,69 @@
+!+++++ 단말의 케이블 연결과 프린터, 서버 ip 주소 할당 완료 (pc는 추후 dhcp로 할당 예정), default gateway 설정 완료. +++++
+
+!+++++ Configuring access mode, portfast and bpduguard on switches +++++
+
+!===== CSW-1 =====
+enable
+configure terminal
+
+int range g1/0/3-8
+    switchport mode access
+    switchport nonegotiate
+    switchport access vlan 100
+    spanning-tree portfast
+    spanning-tree bpduguard enable
+    exit
+
+do w
+
+
+!===== CSW-2 =====
+enable
+configure terminal
+
+int range g1/0/3
+    switchport mode access
+    switchport nonegotiate
+    switchport access vlan 110
+    spanning-tree portfast
+    spanning-tree bpduguard enable
+    exit
+
+do w
+
+
+!===== ASW-1 =====
+enable
+configure terminal
+
+int range f0/1-2
+    switchport mode access
+    switchport nonegotiate
+    switchport access vlan 10
+    spanning-tree portfast
+    spanning-tree bpduguard enable
+    
+int f0/3
+    switchport mode access
+    switchport nonegotiate
+    switchport access vlan 20
+    spanning-tree portfast
+    spanning-tree bpduguard enable
+    exit
+
+do w
+
+
+!===== ASW-2 =====
+enable
+configure terminal
+
+int f0/1
+    switchport mode access
+    switchport nonegotiate
+    switchport access vlan 40
+    spanning-tree portfast
+    spanning-tree bpduguard enable
+    exit
+
+do w

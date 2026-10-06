@@ -1,0 +1,53 @@
+!+++++ SRV-INFRA에 DHCP 주소 설정 완료 +++++
+
+!+++++ Configuring DHCP relay on switches +++++
+
+!===== CSW-1,2 =====
+enable
+configure terminal
+
+int vlan 10
+    ip helper-address 10.1.100.13
+
+int vlan 20
+    ip helper-address 10.1.100.13
+
+int vlan 30
+    ip helper-address 10.1.100.13
+
+int vlan 40
+    ip helper-address 10.1.100.13
+
+int vlan 50
+    ip helper-address 10.1.100.13
+
+int vlan 200
+    ip helper-address 10.1.100.13
+
+int vlan 250
+    ip helper-address 10.1.100.13
+    exit
+
+do w
+
+!+++++ pc dhcp 설정 후 ip 할당 완료 +++++
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
