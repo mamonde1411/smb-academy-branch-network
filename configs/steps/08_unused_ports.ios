@@ -1,0 +1,67 @@
+!+++++ Shutdown unused ports on switches +++++
+
+!===== CSW-1 =====
+enable
+configure terminal
+
+int range g1/0/9-21, g1/1/1-4
+    switchport mode access
+    switchport nonegotiate
+    switchport access vlan 999
+    shutdown
+    exit
+
+do w
+
+
+!===== CSW-2 =====
+enable
+configure terminal
+
+int range g1/0/4-21, g1/1/1-4
+    switchport mode access
+    switchport nonegotiate
+    switchport access vlan 999
+    shutdown
+    exit
+
+do w
+
+
+!===== ASW-1 =====
+enable
+configure terminal
+
+int range f0/6-20, f0/23
+    switchport mode access
+    switchport nonegotiate
+    switchport access vlan 999
+    shutdown
+    exit
+
+do w
+
+!!!!! 프런트 pc2를 뒤늦게 추가해 스위치 포트 설정 함.
+
+int f0/4
+    switchport mode access
+    switchport nonegotiate
+    switchport access vlan 10
+    spanning-tree portfast
+    spanning-tree bpduguard enable
+    exit
+
+do w
+
+!===== ASW-2 =====
+enable
+configure terminal
+
+int range f0/2-20, f0/22-24
+    switchport mode access
+    switchport nonegotiate
+    switchport access vlan 999
+    shutdown
+    exit
+
+do w

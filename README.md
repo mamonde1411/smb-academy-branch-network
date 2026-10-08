@@ -54,6 +54,7 @@ WLC, CAPWAP, WPA2-Enterprise with PEAP, SSID-VLAN mapping, WI-FI
 
 
 ## 주요 설계 결정 (수정 필요)
+
 **주소 설계**
 10.[거점].[vlan].0/24
 [거점] 본원: 1 지점:2 거점이 늘어나면 같은 규칙으로 생성
@@ -74,8 +75,8 @@ ACL은 IP와 포트만 보기 때문에 같은 서버에 둔 자료는 네트워
 본원이 전 지점의 서버를 호스팅하므로 본원이 멈추면 지점 업무도 함께 멈추기 때문이다.
 회선도 같은 이유로 양 거점에 보조 회선을 두었다.
 
-
-
+**주소 정리 링크**
+https://docs.google.com/spreadsheets/d/1pn82nBEWZhSKM8KyXc3gqAoe9HLLubGO3G07kWPLq4g/edit?usp=sharing
 
 
 ## 검증 결과
