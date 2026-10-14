@@ -1,0 +1,103 @@
+!+++++ Configuring R2 +++++
+
+!+++++ initial +++++
+enable
+configure terminal
+hostname R2
+
+
+!+++++ configuring vlan tag, ip addresse, native on subinterfaces +++++
+int g0/0/0
+    no shutdown
+
+int g0/0/0.10
+    encapsulation dot1q 10
+    ip add 10.2.10.1 255.255.255.0
+
+int g0/0/0.20
+    encapsulation dot1q 20
+    ip add 10.2.20.1 255.255.255.0
+
+int g0/0/0.30
+    encapsulation dot1q 30
+    ip add 10.2.30.1 255.255.255.0    
+
+int g0/0/0.40
+    encapsulation dot1q 40
+    ip add 10.2.40.1 255.255.255.0
+
+int g0/0/0.50
+    encapsulation dot1q 50
+    ip add 10.2.50.1 255.255.255.0
+
+int g0/0/0.200
+    encapsulation dot1q 200
+    ip add 10.2.200.1 255.255.255.0
+
+int g0/0/0.250
+    encapsulation dot1q 250
+    ip add 10.2.250.1 255.255.255.0
+
+int g0/0/0.998
+    encapsulation dot1q 998 native
+    exit
+
+!+++++ DHCP +++++
+
+! vlan 10
+ip dhcp excluded-address 10.2.10.1 10.2.10.10
+ip dhcp excluded-address 10.2.10.201 10.2.10.254
+ip dhcp pool VLAN10
+    network 10.2.10.0 255.255.255.0
+    default-router 10.2.10.1
+    dns-server 10.1.100.13
+
+! vlan 20
+ip dhcp excluded-address 10.2.20.1 10.2.20.10
+ip dhcp excluded-address 10.2.20.201 10.2.20.254
+ip dhcp pool VLAN20
+    network 10.2.20.0 255.255.255.0
+    default-router 10.2.20.1
+    dns-server 10.1.100.13
+
+! vlan 30
+ip dhcp excluded-address 10.2.30.1 10.2.30.10
+ip dhcp excluded-address 10.2.30.201 10.2.30.254
+ip dhcp pool VLAN30
+    network 10.2.30.0 255.255.255.0
+    default-router 10.2.30.1
+    dns-server 10.1.100.13
+
+! vlan 40
+ip dhcp excluded-address 10.2.40.1 10.2.40.10
+ip dhcp excluded-address 10.2.40.201 10.2.40.254
+ip dhcp pool VLAN40
+    network 10.2.40.0 255.255.255.0
+    default-router 10.2.40.1
+    dns-server 10.1.100.13
+
+! vlan 50
+ip dhcp excluded-address 10.2.50.1 10.2.50.10
+ip dhcp excluded-address 10.2.50.201 10.2.50.254
+ip dhcp pool VLAN50
+    network 10.2.50.0 255.255.255.0
+    default-router 10.2.50.1
+    dns-server 10.1.100.13
+
+! vlan 200
+ip dhcp excluded-address 10.2.200.1 10.2.200.10
+ip dhcp excluded-address 10.2.200.201 10.2.200.254
+ip dhcp pool VLAN200
+    network 10.2.200.0 255.255.255.0
+    default-router 10.2.200.1
+    dns-server 10.1.100.13
+
+! vlan 250
+ip dhcp excluded-address 10.2.250.1 10.2.250.10
+ip dhcp excluded-address 10.2.250.201 10.2.250.254
+ip dhcp pool VLAN250
+    network 10.2.250.0 255.255.255.0
+    default-router 10.2.250.1
+    dns-server 8.8.8.8
+
+do w
