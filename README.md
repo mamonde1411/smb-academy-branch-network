@@ -2,19 +2,19 @@
 Network design for a two-site language academy — role-based segmentation and access control, built from the owner's real operational requirements.
 
 ## 프로젝트 개요
-이전에 일하던 영어 도서관 겸 어학원에서 운영자의 고충을 들어 프로젝트를 시작하게 됐다. 운영자는 학원에서 쓰이는 모든 자료(학생 정보, 결제 내역, 수업 자료, 도서 DB, 스케줄 등)가 한 구글 드라이브에 저장되어 있고 모든 직원들이 그 어카운트를 사용하는 것에 불안감을 느꼈다. 실제로 과거 퇴사자가 모든 자료를 삭제한 사고도 있었다. 구글 본사에 전화해 일부 복구가 가능했지만 금전적인 손해를 입었다. 
+이전에 일하던 영어 도서관 겸 어학원에서 운영자의 고충을 들어 프로젝트를 시작하게 됐다. 운영자는 학원에서 쓰이는 모든 자료(학생 정보, 결제 내역, 수업 자료, 도서 DB, 스케줄 등)가 한 구글 드라이브에 저장되어 있고 모든 직원들이 그 어카운트를 사용하는 것에 불안감을 느꼈다.
 
-운영자는 학원 운영 프로그램(학생 관리, 도서·수업 자료 관리, 결제)을 자체적으로 두고 싶어했고 직원들이 직무에 따른 접근 권한을 가지길 원한다. 1~2년 내 지점을 열 예정이며 그때는 구글 드라이브 대신 자체 인프라로 운영하길 원한다. 
+운영자는 학원 운영 프로그램(학생 관리, 도서·수업 자료 관리, 결제)을 자체적으로 두고 싶어했고 직원들이 직무에 따른 접근 권한을 가지길 원한다. 1~2년 내 지점을 열 예정이며 그때는 구글 드라이브 대신 자체 인프라로 운영하길 원한다.
 
 이 프로젝트는 Packet Tracer를 사용해 본원과 지점을 연결하는 인프라를 설계, 구현, 장애 주입 검증으로 구성된다. 설계 단계를 마쳤고 현재 구현 단계에 있다.
 
 
 ## 토폴로지 이미지
 물리 설계도
-![alt text](./docs/imgs/physical_design.png)
+![물리설계도](./docs/imgs/physical_design.png)
 
 논리 설계도
-![alt text](./docs/imgs/logical_design.png)
+![논리설계도](./docs/imgs/logical_design.png)
 
 Packet Tracer 물리 설계도
 [예정]
@@ -41,19 +41,24 @@ Packet Tracer 물리 설계도
 **PT에서 유선 dot1x 지원 - 검증 예정
 
 ## 사용 기술
-VLAN, 802.1Q, RPVST+, SVI, ROAS, EtherChannel(LACP), OSPF, Floating static route, HSRPv2, Extended ACL, NAT/PAT, 
-SYSLOG, NTP, DHCP, DNS, Port security, DHCP snooping, DAI, site-to-site VPN, RADIUS + 802.1X, 
+[구현 완료]
+VLAN, RPVST+, SVI, ROAS, EtherChannel(LACP), OSPF, Floating static route, HSRPv2, DHCP
+
+
+[구현 중]
+802.1Q, Extended ACL, NAT/PAT, SYSLOG, NTP,
+DNS, Port security, DHCP snooping, DAI, site-to-site VPN, RADIUS + 802.1X, 
 WLC, CAPWAP, WPA2-Enterprise with PEAP, SSID-VLAN mapping, WI-FI
 
 **pt 한계와 대응**
 1. MAB(MAC Authentication Bypass)
 2. NAS 논리적 분리(vlan tagging | 랜포트 2개 이상 | 가상화) 
     - PT에서는 서버 두 대를 놓아서 분리함. 실제로는 위 괄호 안에 있는 기술을 사용해 논리적 분리.
-3. VTP v3 지원 X. VTP v2 사용
+3. VTP v3 지원 X. VTP v2 transparent 사용
 
 
 
-## 주요 설계 결정 (수정 필요)
+## 주요 설계 결정
 
 **주소 설계**
 10.[거점].[vlan].0/24
@@ -89,8 +94,8 @@ https://docs.google.com/spreadsheets/d/1pn82nBEWZhSKM8KyXc3gqAoe9HLLubGO3G07kWPL
 | 3 | HSRP | Active 라우터 다운 | Standby 승격 | ○초 |
 | 4 | WAN 절체 | 주회선 다운 | 백업 경로로 전환 | ○초 |
 | 5 | ACL — 직무 분리 ① | 강사 VLAN → 결제 서버(`.12`) | 차단 | — |
-| 5-2 | ACL — 직무 분리 ② | 수업자료 개발 VLAN → 개인정보 파일 서버(`.14`) | 차단 | — |
-| 5-3 | ACL — 공용 자료 | 전 직무 VLAN → 공용 파일 서버(`.13`) | 전부 허용 | — |
+| 5-2 | ACL — 직무 분리 ② | 수업자료 개발 VLAN → 개인정보 파일 서버(`.15`) | 차단 | — |
+| 5-3 | ACL — 공용 자료 | 전 직무 VLAN → 공용 파일 서버(`.14`) | 전부 허용 | — |
 | 6 | ACL — 백업존 | 서버존 → 백업 서버 연결 시도 | 차단 (pull 방향만 허용) | — |
 | 7 | 무선 — 게스트 격리 | 게스트 SSID → 서버존 / 인터넷 | 서버존 차단, 인터넷 허용 | — |
 | 8 | 무선 — 직원 연결 | 강사 계정으로 직원 SSID 접속 | VLAN 30에서 DHCP 수신 | — |
@@ -99,7 +104,7 @@ https://docs.google.com/spreadsheets/d/1pn82nBEWZhSKM8KyXc3gqAoe9HLLubGO3G07kWPL
 | 11 | 802.1X | 미인가 계정 인증 시도 | 차단 | — |
 
 
-## 문서 링크
+## 문서 링크 (작성 예정)
 - [요구사항정의서](./docs/01_요구사항정의서.md)
 - [주소설계](./docs/02_주소설계.md)
 - [토폴로지](./docs/03_토폴로지.md)

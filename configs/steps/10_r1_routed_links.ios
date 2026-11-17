@@ -1,0 +1,55 @@
+!+++++ Configuring R1 +++++
+!+++++ Done inserting NIM-2T on routers and cabling between R1 and CSWs+++++
+
+!===== R1 =====
+enable
+configure terminal
+hostname R1
+
+int g0/0/0
+    ip add 10.1.0.1 255.255.255.252
+    description ### to CSW1_G1/0/22 ###    
+    no shutdown
+
+int g0/0/1 
+    ip add 10.1.0.5 255.255.255.252
+    description ### to CSW2_G1/0/22 ###
+    no shutdown
+    exit
+
+do w
+
+!===== CSW1 =====
+enable
+configure terminal
+int g1/0/22
+    no switchport
+    ip add 10.1.0.2 255.255.255.252
+    description ### to R1_G0/0/0 ###
+    no shutdown
+    exit
+
+do w
+
+!===== CSW2 =====
+enable
+configure terminal
+int g1/0/22
+    no switchport
+    ip add 10.1.0.6 255.255.255.252
+    description ### to R1_G0/0/1 ###
+    no shutdown
+    exit
+
+do w
+
+
+
+
+
+
+
+
+
+
+

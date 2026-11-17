@@ -1,0 +1,73 @@
+
+!===== CSW1 =====
+enable
+configure terminal
+
+vlan 210
+name TRANSIT
+
+spanning-tree vlan 210 priority 4096
+
+
+int vlan 210
+    ip add 10.1.210.2 255.255.255.0
+    no shutdown
+
+int po1
+    switchport trunk allowed vlan add 210
+
+router ospf 1
+    router-id 1.0.0.2
+    network 10.1.0.0 0.0.255.255 area 0
+    passive-interface default
+    no passive-interface g1/0/22
+    no passive-interface vlan210
+    exit
+
+do w
+
+
+!===== CSW2 =====
+enable
+configure terminal
+
+vlan 210
+    name TRANSIT
+
+spanning-tree vlan 210 priority 8192
+
+int vlan 210
+    ip add 10.1.210.3 255.255.255.0
+    no shutdown
+
+int po1
+    switchport trunk allowed vlan add 210
+
+router ospf 1
+    router-id 1.0.0.3
+    network 10.1.0.0 0.0.255.255 area 0
+    passive-interface default
+    no passive-interface g1/0/22
+    no passive-interface vlan210
+    exit
+
+do w
+
+
+!===== R1 =====
+enable
+configure terminal
+
+int l0
+    ip add 10.1.0.254 255.255.255.255
+    exit
+
+router ospf 1
+    router-id 1.0.0.1
+    network 10.1.0.0 0.0.255.255 area 0
+    passive-interface default
+    no passive-interface g0/0/0
+    no passive-interface g0/0/1
+    exit
+
+do w
