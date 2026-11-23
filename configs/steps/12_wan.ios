@@ -91,18 +91,20 @@ int g0/0/2
     no shutdown
     exit
 
-! ISP-MAIN 대역은 ISP-MAIN으로
+! ISP-MAIN 대역을 ISP-MAIN 라우터로 보낸다.
 ip route 203.0.113.0 255.255.255.0 192.0.2.2
-! ISP-LTE 대역은 ISP-LTE로
+
+! ISP-LTE 대역을 ISP-LTE 라우터로 보낸다.
 ip route 198.51.100.0 255.255.255.0 192.0.2.6
-! 10.x · 172.16.x 경로는 넣지 않음 (인터넷은 사설 대역을 라우팅하지 않음)
 
 do w
 
 
-!===== EXT-DNS (GUI — .ios에 남지 않음) =====
-! Desktop > IP Configuration > Static
-! IP 8.8.8.8 / Mask 255.255.255.0 / Gateway 8.8.8.1
+!===== EXT-DNS  =====
+! IP 8.8.8.8
+! Subnet Mask 255.255.255.0
+! Gateway 8.8.8.1
+! 설정
 
 
 !===== R1 =====
@@ -121,9 +123,6 @@ int s0/1/0
     description ### WAN LTE - TO ISP-LTE S0/1/0 ###
     no shutdown
     exit
-
-! OSPF 추가 없음 — network 10.1.0.0 0.0.255.255가 WAN 대역을 덮지 않음
-! 기본 경로 · NAT는 과제 13
 
 do w
 
@@ -144,7 +143,5 @@ int s0/1/0
     description ### WAN LTE - TO ISP-LTE S0/1/1 ###
     no shutdown
     exit
-
-! 기본 경로 · NAT는 과제 13
 
 do w
