@@ -1,0 +1,150 @@
+! ISP-MAIN, ISP-LTE, INET, EXT-DNS를 설치하고 케이블을 연결시켰다.
+! R1, IPS-MAIN의 포트가 부족한 점은 GLT-T를 장착해서 해결했다.
+
+
+!===== ISP-MAIN =====
+enable
+configure terminal
+
+hostname ISP-MAIN
+
+! to R1 G0/0/2
+int g0/0/0
+    ip add 203.0.113.1 255.255.255.252
+    description ### TO R1 Gi0/0/2 ###
+    no shutdown
+
+! to R2 G0/0/1
+int g0/0/1
+    ip add 203.0.113.5 255.255.255.252
+    description ### TO R2 Gi0/0/1 ###
+    no shutdown
+
+! to INET G0/0/0
+int g0/0/2
+    ip add 192.0.2.2 255.255.255.252
+    description ### TO INET Gi0/0/0 ###
+    no shutdown
+    exit
+
+! default gateway
+ip route 0.0.0.0 0.0.0.0 192.0.2.1
+
+do w
+
+
+!===== ISP-LTE =====
+enable
+configure terminal
+
+hostname ISP-LTE
+
+! to INET G0/0/1
+int g0/0/0
+    ip add 192.0.2.6 255.255.255.252
+    description ### TO INET Gi0/0/1 ###
+    no shutdown
+
+! to R1 S0/1/0 (DCE)
+int s0/1/0
+    ip add 198.51.100.1 255.255.255.252
+    description ### TO R1 S0/1/0 (LTE) ###
+    clock rate 2000000
+    no shutdown
+
+! to R2 S0/1/0 (DCE)
+int s0/1/1
+    ip add 198.51.100.5 255.255.255.252
+    description ### TO R2 S0/1/0 (LTE) ###
+    clock rate 2000000
+    no shutdown
+    exit
+
+! default gateway
+ip route 0.0.0.0 0.0.0.0 192.0.2.5
+
+do w
+
+
+!===== INET =====
+enable
+configure terminal
+
+hostname INET
+
+! to ISP-MAIN G0/0/2
+int g0/0/0
+    ip add 192.0.2.1 255.255.255.252
+    description ### TO ISP-MAIN Gi0/0/2 ###
+    no shutdown
+
+! to ISP-LTE G0/0/0
+int g0/0/1
+    ip add 192.0.2.5 255.255.255.252
+    description ### TO ISP-LTE Gi0/0/0 ###
+    no shutdown
+
+! to EXT-DNS
+int g0/0/2
+    ip add 8.8.8.1 255.255.255.0
+    description ### TO EXT-DNS ###
+    no shutdown
+    exit
+
+! ISP-MAIN 대역은 ISP-MAIN으로
+ip route 203.0.113.0 255.255.255.0 192.0.2.2
+! ISP-LTE 대역은 ISP-LTE로
+ip route 198.51.100.0 255.255.255.0 192.0.2.6
+! 10.x · 172.16.x 경로는 넣지 않음 (인터넷은 사설 대역을 라우팅하지 않음)
+
+do w
+
+
+!===== EXT-DNS (GUI — .ios에 남지 않음) =====
+! Desktop > IP Configuration > Static
+! IP 8.8.8.8 / Mask 255.255.255.0 / Gateway 8.8.8.1
+
+
+!===== R1 =====
+enable
+configure terminal
+
+! to ISP-MAIN G0/0/0 (WAN 주 회선)
+int g0/0/2
+    ip add 203.0.113.2 255.255.255.252
+    description ### WAN MAIN - TO ISP-MAIN Gi0/0/0 ###
+    no shutdown
+
+! to ISP-LTE S0/1/0 (WAN 보조 회선, DTE)
+int s0/1/0
+    ip add 198.51.100.2 255.255.255.252
+    description ### WAN LTE - TO ISP-LTE S0/1/0 ###
+    no shutdown
+    exit
+
+! OSPF 추가 없음 — network 10.1.0.0 0.0.255.255가 WAN 대역을 덮지 않음
+! 기본 경로 · NAT는 과제 13
+
+do w
+
+
+!===== R2 =====
+enable
+configure terminal
+
+! to ISP-MAIN G0/0/1 (WAN 주 회선)
+int g0/0/1
+    ip add 203.0.113.6 255.255.255.252
+    description ### WAN MAIN - TO ISP-MAIN Gi0/0/1 ###
+    no shutdown
+
+! to ISP-LTE S0/1/1 (WAN 보조 회선, DTE)
+int s0/1/0
+    ip add 198.51.100.6 255.255.255.252
+    description ### WAN LTE - TO ISP-LTE S0/1/1 ###
+    no shutdown
+    exit
+
+! 기본 경로 · NAT는 과제 13
+
+do w
