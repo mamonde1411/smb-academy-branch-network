@@ -1,0 +1,92 @@
+!+++++ 기본 경로, NAT(PAT), DNS +++++
+
+
+!===== R1 =====
+enable
+configure terminal
+
+! default-gateway
+ip route 0.0.0.0 0.0.0.0 203.0.113.1
+
+router ospf 1
+    default-information originate
+    exit
+
+! PAT하기 위한 NAT
+ip access-list standard NAT-INSIDE
+    permit 10.1.0.0 0.0.255.255
+    exit
+
+! to CSW1 — 안쪽
+int g0/0/0
+    ip nat inside
+
+! to CSW2 — 안쪽
+int g0/0/1
+    ip nat inside
+
+! to ISP-MAIN — 바깥쪽
+int g0/0/2
+    ip nat outside
+    exit
+
+! PAT
+ip nat inside source list NAT-INSIDE interface g0/0/2 overload
+
+do w
+
+
+!===== R2 =====
+enable
+configure terminal
+
+! default-gateway
+ip route 0.0.0.0 0.0.0.0 203.0.113.5
+
+! PAT하기 위한 NAT
+ip access-list standard NAT-INSIDE
+    permit 10.2.0.0 0.0.255.255
+    exit
+
+! sub-interface 7개
+! to vlans - 안쪽
+int g0/0/0.10
+    ip nat inside
+int g0/0/0.20
+    ip nat inside
+int g0/0/0.30
+    ip nat inside
+int g0/0/0.40
+    ip nat inside
+int g0/0/0.50
+    ip nat inside
+int g0/0/0.200
+    ip nat inside
+int g0/0/0.250
+    ip nat inside
+
+! to ISP-MAIN — 바깥쪽
+int g0/0/1
+    ip nat outside
+    exit
+
+! PAT
+ip nat inside source list NAT-INSIDE interface g0/0/1 overload
+
+do w
+
+
+!===== SRV-INFRA, EXT-DNS =====
+! DNS에 아래 도메인 추가함
+
+! SRV-INFRA
+! radius.academy.internal   10.1.100.10
+! app.academy.internal      10.1.100.11
+! pay.academy.internal      10.1.100.12
+! infra.academy.internal    10.1.100.13
+! file.academy.internal     10.1.100.14
+! priv.academy.internal     10.1.100.15
+
+
+! EXT-DNS
+! www.example.com   A   8.8.8.8
