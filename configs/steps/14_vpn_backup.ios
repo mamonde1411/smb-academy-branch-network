@@ -1,0 +1,242 @@
+!+++++ 14. VPN + 백업 경로 — GRE over IPsec 터널 2개 +++++
+! Tunnel0 = 주회선 위 (OSPF) / Tunnel1 = LTE 위 (정적 백업, AD 200)
+! 시리얼 이름은 과제 12와 같이 s0/1/0 기준 — 다르면 바꿔서
+
+
+!################ 14-A. 터널 + 라우팅 ################
+
+!===== R1 =====
+enable
+configure terminal
+
+! 터널 도착 주소 고정 — 각 터널은 자기 통신사로만 나감
+ip route 203.0.113.6 255.255.255.255 203.0.113.1
+ip route 198.51.100.6 255.255.255.255 198.51.100.1
+
+! to R2 Tunnel0 (주회선 위, GRE 기본 모드)
+int tunnel 0
+    ip add 172.16.0.1 255.255.255.252
+    description ### VPN MAIN - TO R2 Tunnel0 ###
+    tunnel source g0/0/2
+    tunnel destination 203.0.113.6
+
+! to R2 Tunnel1 (LTE 위)
+int tunnel 1
+    ip add 172.16.0.5 255.255.255.252
+    description ### VPN LTE - TO R2 Tunnel1 ###
+    tunnel source s0/1/0
+    tunnel destination 198.51.100.6
+    exit
+
+! OSPF — 주 터널만 추가
+router ospf 1
+    network 172.16.0.0 0.0.0.3 area 0
+    no passive-interface tunnel0
+    exit
+
+! 백업 — 지점 대역은 LTE 터널로 (AD 200, 평소엔 OSPF /24가 우선)
+ip route 10.2.0.0 255.255.0.0 172.16.0.6 200
+
+do w
+
+
+!===== R2 =====
+enable
+configure terminal
+
+! 터널 도착 주소 고정
+ip route 203.0.113.2 255.255.255.255 203.0.113.5
+ip route 198.51.100.2 255.255.255.255 198.51.100.5
+
+! to R1 Tunnel0 (주회선 위)
+int tunnel 0
+    ip add 172.16.0.2 255.255.255.252
+    description ### VPN MAIN - TO R1 Tunnel0 ###
+    tunnel source g0/0/1
+    tunnel destination 203.0.113.2
+
+! to R1 Tunnel1 (LTE 위)
+int tunnel 1
+    ip add 172.16.0.6 255.255.255.252
+    description ### VPN LTE - TO R1 Tunnel1 ###
+    tunnel source s0/1/0
+    tunnel destination 198.51.100.2
+    exit
+
+! OSPF — 지점 참여 (router-id 규칙: <거점>.0.0.<장비번호>)
+router ospf 1
+    router-id 2.0.0.1
+    network 10.2.0.0 0.0.255.255 area 0
+    network 172.16.0.0 0.0.0.3 area 0
+    passive-interface default
+    no passive-interface tunnel0
+    exit
+
+! 백업 — 본원 대역은 LTE 터널로 (AD 200)
+ip route 10.1.0.0 255.255.0.0 172.16.0.5 200
+
+do w
+
+
+!################ 14-B. 암호화 (IPsec) ################
+! 먼저 R1에서 crypto ? 확인 — isakmp가 안 보이면 보안 라이선스부터:
+!   license boot ? 로 따라가 securityk9 켜기 → do w → reload (R2도 동일)
+! DH group은 group ? 로 확인해 가장 큰 값 (아래는 5 — 실제 장비면 14 이상 권장)
+
+!===== R1 =====
+enable
+configure terminal
+
+! 1단계(ISAKMP) — 서로 확인하고 열쇠 만드는 규칙
+crypto isakmp policy 10
+    encryption aes 256
+    hash sha
+    authentication pre-share
+    group 5
+    exit
+
+! 사전 공유 키 — 회선마다 상대 주소가 다름
+crypto isakmp key Academy-VPN-2026 address 203.0.113.6
+crypto isakmp key Academy-VPN-2026 address 198.51.100.6
+
+! 2단계(IPsec) — 실제 데이터를 잠그는 방식
+crypto ipsec transform-set VPN-TS esp-aes 256 esp-sha-hmac
+    exit
+
+! 잠글 대상 = 터널 봉투(GRE) 자체
+ip access-list extended VPN-MAIN
+    permit gre host 203.0.113.2 host 203.0.113.6
+    exit
+ip access-list extended VPN-LTE
+    permit gre host 198.51.100.2 host 198.51.100.6
+    exit
+
+! 회선별 crypto map
+crypto map VPN-MAIN 10 ipsec-isakmp
+    set peer 203.0.113.6
+    set transform-set VPN-TS
+    match address VPN-MAIN
+    exit
+crypto map VPN-LTE 10 ipsec-isakmp
+    set peer 198.51.100.6
+    set transform-set VPN-TS
+    match address VPN-LTE
+    exit
+
+! to ISP-MAIN — 주회선에 적용
+int g0/0/2
+    crypto map VPN-MAIN
+
+! to ISP-LTE — LTE에 적용
+int s0/1/0
+    crypto map VPN-LTE
+    exit
+
+do w
+
+
+!===== R2 =====
+enable
+configure terminal
+
+crypto isakmp policy 10
+    encryption aes 256
+    hash sha
+    authentication pre-share
+    group 5
+    exit
+
+crypto isakmp key Academy-VPN-2026 address 203.0.113.2
+crypto isakmp key Academy-VPN-2026 address 198.51.100.2
+
+crypto ipsec transform-set VPN-TS esp-aes 256 esp-sha-hmac
+    exit
+
+ip access-list extended VPN-MAIN
+    permit gre host 203.0.113.6 host 203.0.113.2
+    exit
+ip access-list extended VPN-LTE
+    permit gre host 198.51.100.6 host 198.51.100.2
+    exit
+
+crypto map VPN-MAIN 10 ipsec-isakmp
+    set peer 203.0.113.2
+    set transform-set VPN-TS
+    match address VPN-MAIN
+    exit
+crypto map VPN-LTE 10 ipsec-isakmp
+    set peer 198.51.100.2
+    set transform-set VPN-TS
+    match address VPN-LTE
+    exit
+
+! to ISP-MAIN
+int g0/0/1
+    crypto map VPN-MAIN
+
+! to ISP-LTE
+int s0/1/0
+    crypto map VPN-LTE
+    exit
+
+do w
+
+
+!################ 14-C. LTE로 인터넷 백업 ################
+
+!===== R1 =====
+enable
+configure terminal
+
+! 주회선 기본 경로가 사라지면 쓰이는 백업 (AD 200)
+ip route 0.0.0.0 0.0.0.0 198.51.100.1 200
+
+! 나가는 회선에 맞는 주소로 변환
+route-map NAT-MAIN permit 10
+    match ip address NAT-INSIDE
+    match interface g0/0/2
+    exit
+route-map NAT-LTE permit 10
+    match ip address NAT-INSIDE
+    match interface s0/1/0
+    exit
+
+! to ISP-LTE — 바깥쪽 추가
+int s0/1/0
+    ip nat outside
+    exit
+
+! 과제 13 줄을 회선별 2줄로 교체
+do clear ip nat translation *
+no ip nat inside source list NAT-INSIDE interface g0/0/2 overload
+ip nat inside source route-map NAT-MAIN interface g0/0/2 overload
+ip nat inside source route-map NAT-LTE interface s0/1/0 overload
+
+do w
+
+
+!===== R2 =====
+enable
+configure terminal
+
+ip route 0.0.0.0 0.0.0.0 198.51.100.5 200
+
+route-map NAT-MAIN permit 10
+    match ip address NAT-INSIDE
+    match interface g0/0/1
+    exit
+route-map NAT-LTE permit 10
+    match ip address NAT-INSIDE
+    match interface s0/1/0
+    exit
+
+int s0/1/0
+    ip nat outside
+    exit
+
+do clear ip nat translation *
+no ip nat inside source list NAT-INSIDE interface g0/0/1 overload
+ip nat inside source route-map NAT-MAIN interface g0/0/1 overload
+ip nat inside source route-map NAT-LTE interface s0/1/0 overload
+
+do w
