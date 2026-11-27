@@ -1,6 +1,5 @@
 !+++++ 14. VPN + 백업 경로 — GRE over IPsec 터널 2개 +++++
 ! Tunnel0 = 주회선 위 (OSPF) / Tunnel1 = LTE 위 (정적 백업, AD 200)
-! 시리얼 이름은 과제 12와 같이 s0/1/0 기준 — 다르면 바꿔서
 
 
 !################ 14-A. 터널 + 라우팅 ################
@@ -9,33 +8,42 @@
 enable
 configure terminal
 
-! 터널 도착 주소 고정 — 각 터널은 자기 통신사로만 나감
-ip route 203.0.113.6 255.255.255.255 203.0.113.1
-ip route 198.51.100.6 255.255.255.255 198.51.100.1
-
 ! to R2 Tunnel0 (주회선 위, GRE 기본 모드)
 int tunnel 0
-    ip add 172.16.0.1 255.255.255.252
-    description ### VPN MAIN - TO R2 Tunnel0 ###
     tunnel source g0/0/2
     tunnel destination 203.0.113.6
+    ip add 172.16.0.1 255.255.255.252
+    description ### VPN MAIN - TO R2 Tunnel0 ###
 
 ! to R2 Tunnel1 (LTE 위)
 int tunnel 1
-    ip add 172.16.0.5 255.255.255.252
-    description ### VPN LTE - TO R2 Tunnel1 ###
     tunnel source s0/1/0
     tunnel destination 198.51.100.6
+    ip add 172.16.0.5 255.255.255.252
+    description ### VPN LTE - TO R2 Tunnel1 ###
     exit
 
-! OSPF — 주 터널만 추가
+! 주 터널: OSPF로 추가
 router ospf 1
     network 172.16.0.0 0.0.0.3 area 0
-    no passive-interface tunnel0
+
+    ! PT에서 passive int 설정에 tunnel 설정 불가.
+    ! no passive-interface tunnel0도 불가
+    ! passive-int default를 삭제하고 default 대신 하나씩 막음
+    ! OSPF Neighbors: Gi0/0/0(CSW1), Gi0/0/1(CSW2), Tunnel0(R2)
+    no passive-interface default
+    passive-interface vlan1
+    passive-interface g0/0/2
+    passive-interface s0/1/0
+    passive-interface s0/1/1
+    passive-interface loopback0
     exit
 
-! 백업 — 지점 대역은 LTE 터널로 (AD 200, 평소엔 OSPF /24가 우선)
+
+! LTE 백업 터널: 지점 대역 static으로 추가
 ip route 10.2.0.0 255.255.0.0 172.16.0.6 200
+ip route 198.51.100.6 255.255.255.255 198.51.100.1
+
 
 do w
 
@@ -44,50 +52,62 @@ do w
 enable
 configure terminal
 
-! 터널 도착 주소 고정
-ip route 203.0.113.2 255.255.255.255 203.0.113.5
-ip route 198.51.100.2 255.255.255.255 198.51.100.5
-
 ! to R1 Tunnel0 (주회선 위)
 int tunnel 0
-    ip add 172.16.0.2 255.255.255.252
-    description ### VPN MAIN - TO R1 Tunnel0 ###
     tunnel source g0/0/1
     tunnel destination 203.0.113.2
+    ip add 172.16.0.2 255.255.255.252
+    description ### VPN MAIN - TO R1 Tunnel0 ###
 
 ! to R1 Tunnel1 (LTE 위)
 int tunnel 1
-    ip add 172.16.0.6 255.255.255.252
-    description ### VPN LTE - TO R1 Tunnel1 ###
     tunnel source s0/1/0
     tunnel destination 198.51.100.2
+    ip add 172.16.0.6 255.255.255.252
+    description ### VPN LTE - TO R1 Tunnel1 ###
     exit
 
-! OSPF — 지점 참여 (router-id 규칙: <거점>.0.0.<장비번호>)
+! 주 터널: OSPF 추가
 router ospf 1
     router-id 2.0.0.1
     network 10.2.0.0 0.0.255.255 area 0
     network 172.16.0.0 0.0.0.3 area 0
-    passive-interface default
-    no passive-interface tunnel0
+    
+    ! PT에서 passive int 설정에 tunnel 설정 불가.
+    ! no passive-interface tunnel0도 불가
+    ! passive-int default를 삭제하고 default 대신 하나씩 막음
+    ! OSPF Neighbor: Tunnel0(R1)
+
+    no passive-interface default
+    passive-interface vlan1
+    passive-interface g0/0/0
+    passive-interface g0/0/0.10
+    passive-interface g0/0/0.20
+    passive-interface g0/0/0.30
+    passive-interface g0/0/0.40
+    passive-interface g0/0/0.50
+    passive-interface g0/0/0.200
+    passive-interface g0/0/0.250
+    passive-interface g0/0/0.998
+    passive-interface g0/0/1
+    passive-interface g0/0/2
+    passive-interface s0/1/0
+    passive-interface s0/1/1
     exit
 
-! 백업 — 본원 대역은 LTE 터널로 (AD 200)
+! LTE 백업 터널: 본점 대역 static으로 추가
 ip route 10.1.0.0 255.255.0.0 172.16.0.5 200
+ip route 198.51.100.2 255.255.255.255 198.51.100.5
 
 do w
 
 
 !################ 14-B. 암호화 (IPsec) ################
-! 먼저 R1에서 crypto ? 확인 — isakmp가 안 보이면 보안 라이선스부터:
-!   license boot ? 로 따라가 securityk9 켜기 → do w → reload (R2도 동일)
-! DH group은 group ? 로 확인해 가장 큰 값 (아래는 5 — 실제 장비면 14 이상 권장)
 
 !===== R1 =====
 enable
 configure terminal
 
-! 1단계(ISAKMP) — 서로 확인하고 열쇠 만드는 규칙
 crypto isakmp policy 10
     encryption aes 256
     hash sha
@@ -95,15 +115,11 @@ crypto isakmp policy 10
     group 5
     exit
 
-! 사전 공유 키 — 회선마다 상대 주소가 다름
 crypto isakmp key Academy-VPN-2026 address 203.0.113.6
 crypto isakmp key Academy-VPN-2026 address 198.51.100.6
 
-! 2단계(IPsec) — 실제 데이터를 잠그는 방식
 crypto ipsec transform-set VPN-TS esp-aes 256 esp-sha-hmac
-    exit
 
-! 잠글 대상 = 터널 봉투(GRE) 자체
 ip access-list extended VPN-MAIN
     permit gre host 203.0.113.2 host 203.0.113.6
     exit
@@ -111,7 +127,6 @@ ip access-list extended VPN-LTE
     permit gre host 198.51.100.2 host 198.51.100.6
     exit
 
-! 회선별 crypto map
 crypto map VPN-MAIN 10 ipsec-isakmp
     set peer 203.0.113.6
     set transform-set VPN-TS
@@ -150,7 +165,6 @@ crypto isakmp key Academy-VPN-2026 address 203.0.113.2
 crypto isakmp key Academy-VPN-2026 address 198.51.100.2
 
 crypto ipsec transform-set VPN-TS esp-aes 256 esp-sha-hmac
-    exit
 
 ip access-list extended VPN-MAIN
     permit gre host 203.0.113.6 host 203.0.113.2
@@ -183,34 +197,34 @@ do w
 
 
 !################ 14-C. LTE로 인터넷 백업 ################
+! 목적: 주회선이 끊기면 인터넷도 LTE로 나가게
+!   - 기본 경로: 주회선(AD 1) + LTE floating(AD 200)
+!   - NAT: 나가는 회선의 주소로 변환
+! 설계(실제 IOS): route-map(match interface)으로 회선별 NAT 자동 선택 → 아래 [참고]
+! PT 구현: PT ISR4331은 route-map 미지원 → 내용이 같은 ACL 2개로 NAT 줄 2개
+!          PT는 먼저 맞는 규칙만 쓰고 시리얼 쪽 NAT도 동작 안 함 → 단말 NAT 전환은 PT에서 검증 불가
+
 
 !===== R1 =====
 enable
 configure terminal
 
-! 주회선 기본 경로가 사라지면 쓰이는 백업 (AD 200)
+! 주회선이 끊기면 쓰이는 백업 기본 경로 (AD 200)
 ip route 0.0.0.0 0.0.0.0 198.51.100.1 200
-
-! 나가는 회선에 맞는 주소로 변환
-route-map NAT-MAIN permit 10
-    match ip address NAT-INSIDE
-    match interface g0/0/2
-    exit
-route-map NAT-LTE permit 10
-    match ip address NAT-INSIDE
-    match interface s0/1/0
-    exit
 
 ! to ISP-LTE — 바깥쪽 추가
 int s0/1/0
     ip nat outside
     exit
 
-! 과제 13 줄을 회선별 2줄로 교체
-do clear ip nat translation *
-no ip nat inside source list NAT-INSIDE interface g0/0/2 overload
-ip nat inside source route-map NAT-MAIN interface g0/0/2 overload
-ip nat inside source route-map NAT-LTE interface s0/1/0 overload
+! LTE용 NAT 대상 — 내용은 NAT-INSIDE와 같고 이름만 다름 (같은 ACL로는 두 줄 불가)
+ip access-list standard NAT-INSIDE-LTE
+    permit 10.1.0.0 0.0.255.255
+    exit
+
+! 회선별 PAT — 주회선 규칙이 반드시 첫 번째 (PT는 먼저 맞는 규칙을 씀)
+ip nat inside source list NAT-INSIDE interface g0/0/2 overload
+ip nat inside source list NAT-INSIDE-LTE interface s0/1/0 overload
 
 do w
 
@@ -219,24 +233,67 @@ do w
 enable
 configure terminal
 
+! 주회선이 끊기면 쓰이는 백업 기본 경로 (AD 200)
 ip route 0.0.0.0 0.0.0.0 198.51.100.5 200
 
-route-map NAT-MAIN permit 10
-    match ip address NAT-INSIDE
-    match interface g0/0/1
-    exit
-route-map NAT-LTE permit 10
-    match ip address NAT-INSIDE
-    match interface s0/1/0
-    exit
-
+! to ISP-LTE — 바깥쪽 추가
 int s0/1/0
     ip nat outside
     exit
 
-do clear ip nat translation *
-no ip nat inside source list NAT-INSIDE interface g0/0/1 overload
-ip nat inside source route-map NAT-MAIN interface g0/0/1 overload
-ip nat inside source route-map NAT-LTE interface s0/1/0 overload
+! LTE용 NAT 대상
+ip access-list standard NAT-INSIDE-LTE
+    permit 10.2.0.0 0.0.255.255
+    exit
+
+! 회선별 PAT — 주회선 규칙이 반드시 첫 번째
+ip nat inside source list NAT-INSIDE interface g0/0/1 overload
+ip nat inside source list NAT-INSIDE-LTE interface s0/1/0 overload
 
 do w
+
+
+!---------- [참고] 실제 IOS 설계 — PT는 route-map 미지원 ----------
+! route-map NAT-MAIN permit 10
+!     match ip address NAT-INSIDE
+!     match interface g0/0/2
+! route-map NAT-LTE permit 10
+!     match ip address NAT-INSIDE
+!     match interface s0/1/0
+! ip nat inside source route-map NAT-MAIN interface g0/0/2 overload
+! ip nat inside source route-map NAT-LTE interface s0/1/0 overload
+
+
+!---------- 검증 기록 (2026.11.27) ----------
+! [본원 주회선 장애] R1 g0/0/2 shutdown
+!   OK  R1: S* 0.0.0.0/0 [200/0] via 198.51.100.1   (LTE 기본 경로로 전환)
+!   OK  R1: S 10.2.0.0/16 [200/0] via 172.16.0.6    (지점행 → LTE 터널)
+!   OK  R1 → 8.8.8.8 ping 성공                       (라우터 수준 인터넷 백업)
+!   PT  CSW1 O*E2 사라짐 — floating 기본 경로를 OSPF로 다시 광고 못 함
+!       (always 없음, 재설정·clear ip ospf process로도 안 됨)
+!   PT  단말 NAT 전환 검증 불가
+! [지점 주회선 장애] R2 g0/0/1 shutdown
+!   OK  R2: S* 0.0.0.0/0 [200/0] via 198.51.100.5
+!   OK  R2 → 8.8.8.8 ping 성공
+!   PT  PC-FRONT-B → 8.8.8.8 실패 — NAT 변환 0건
+!       ACL 매치 정상, 주회선 규칙 제거·crypto map 제거로도 동일 → 시리얼 쪽 NAT 미동작
+! [복구 후] (2026.11.27, PT 재시작 포함)
+!   OK  R1 → 8.8.8.8, R2 → 8.8.8.8 ping 성공 (라우터 수준)
+!   OK  CSW1: O*E2 0.0.0.0/0 정상
+!   PT  PC-FRONT → 8.8.8.8 실패 — 기본 경로·NAT 설정은 정상인데 단말에서만 실패
+!       PT 재시작으로도 해결 안 됨 → PT 오류로 기록
+!       이후 과제의 인터넷 확인은 라우터 수준(R1 → 8.8.8.8)으로 대신
+!   OK  PC-FRONT → PC-FRONT-B tracert = 172.16.0.2 (주 터널)  ← 확인 후 OK로 바꾸기
+
+!---------- 테스트 절차 (재현용 — 붙여넣지 말 것) ----------
+! 1. R1(config)# int g0/0/2 → shutdown
+! 2. 확인: show ip route (S* [200/0]) / ping 8.8.8.8
+! 3. 복구: int g0/0/2 → no shutdown
+!    → show ip route에 S* [1/0] via 203.0.113.1이 돌아온 걸 본 뒤:
+!      do clear ip nat translation *
+!      no ip nat inside source list NAT-INSIDE-LTE interface s0/1/0 overload
+!      ip nat inside source list NAT-INSIDE interface g0/0/2 overload
+!      ip nat inside source list NAT-INSIDE-LTE interface s0/1/0 overload
+!      router ospf 1 → no default-information originate → default-information originate   (PT 제약)
+! 4. R2도 같은 방식 (g0/0/1, NAT 순서 복구). crypto map VPN-LTE가 s0/1/0에 붙어 있는지 확인
+! 5. IPsec INV_SPI 메시지가 뜨면 R1·R2 둘 다 clear crypto sa / clear crypto isakmp
